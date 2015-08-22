@@ -16,11 +16,15 @@ TEMPLATE = app
 SOURCES += main.cpp \
     game.cpp \
     tile.cpp \
-    miscCode.cpp
+    miscCode.cpp \
+    tileoutline.cpp \
+    board.cpp
 
 HEADERS  += \
     game.h \
-    tile.h
+    tile.h \
+    tileoutline.h \
+    board.h
 
 FORMS    +=
 

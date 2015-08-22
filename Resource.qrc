@@ -1,0 +1,13 @@
+<RCC>
+    <qresource prefix="/Stuff">
+        <file>scarab.PNG</file>
+        <file>beetle.png</file>
+        <file>ant.png</file>
+        <file>bee.png</file>
+        <file>grasshopper.png</file>
+        <file>ladybug.png</file>
+        <file>spider.png</file>
+        <file>mosquito.png</file>
+        <file>pillbug.png</file>
+    </qresource>
+</RCC>

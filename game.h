@@ -6,9 +6,18 @@
 #include <stdint.h>
 #include <set>
 #include "tile.h"
+#include "tileoutline.h"
+#include <QPushButton>
+#include <QMouseEvent>
+#include "board.h"
+#include <ostream>
+
+
+
 
 
 struct game_state;
+//class TileOutline;
 
 
 class Game : public QGraphicsView
@@ -25,20 +34,65 @@ public:
     std::set<Tile*> tileSet;//reference to every placed tile
     std::map<copair,Tile*> tileMap;// map coordinates to tiles
 
+    std::set<copair> placeableSpots;//set of all places a new tile can be placed
+    std::set<TileOutline*> tileOutlineSet;//container for tileOutlines
+
+
+
     //METHODS
     void UpdateGameState();
+    void handleClick(int x, int y);
+    void makeMove(Tile* tile, copair xy);
+    void selectTile(copair xy);
+    void clearOutlines();
 
 private:
     //MEMBER ATTRIBUTES
-    QGraphicsScene *Scene;
-    bool player1Turn;
+    Board *Scene;
+    int8_t turn = 0;//indicates which player's turn it is.
+    int8_t turnNumber = 0;//indicates which turn it is up to turn 5.
+
+
+    //flags for whether queens have been placed
+    bool Queen0Placed = false;
+    bool Queen1Placed = false;
+
+
+    int iconsTop, iconsLeft, iconsRight;//parameters for location of new tile icons
+
+    Tile* selectedTile=nullptr;
+
+    //new tile icons
+    Tile *queenIcon0, *queenIcon1, *spiderIcon0, *spiderIcon1,
+    *grasshopperIcon0, *grasshopperIcon1, *antIcon0, *antIcon1,
+    *beetleIcon0, *beetleIcon1, *mosquitoIcon0, *mosquitoIcon1,
+    *ladybugIcon0, *ladybugIcon1, *pillbugIcon0, *pillbugIcon1;
+
+    //number of each tile left
+    int nQueen0=1, nSpider0=2, nGrasshopper0=3, nAnt0=3, nBeetle0=2, nMosquito0=1, nLadybug0=1, nPillbug0=1,
+    nQueen1=1, nSpider1=2, nGrasshopper1=3, nAnt1=3, nBeetle1=2, nMosquito1=1, nLadybug1=1, nPillbug1=1;
 
     //methods
     void start();
+    void getPlaceable();//get list of places a new tile can be placed
+    void endTurn();
+    void drawScene();
+    void deselect();
+    void showPossibleMoves();
+
+    //operator overloads
+    friend QDebug operator<< (QDebug d, std::map<copair,Tile*> &tilemap);
 
 };
 
-enum direction
+QDebug operator <<(QDebug d, std::map<copair,Tile*> &tilemap);
+QDebug operator <<(QDebug d, copair xy);
+
+QTextStream& operator <<(QTextStream& stream, std::map<copair,Tile*> &tilemap);
+QTextStream& operator <<(QTextStream& stream, copair &xy);
+
+
+/*enum direction
 {
     north,
     northe,
@@ -46,7 +100,7 @@ enum direction
     south,
     southw,
     northw
-};
+};*/
 
 
 struct game_state{
