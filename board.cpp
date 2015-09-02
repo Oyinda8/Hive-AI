@@ -53,7 +53,10 @@ void Board::mousePressEvent(QGraphicsSceneMouseEvent *event)
     }
 
     //qDebug()<<"xs: " << xs << " ys: " << ys;
+    try{
     game->handleClick(x,y);
+    }catch(int &excep){
+    }
 
 
 

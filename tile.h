@@ -40,7 +40,6 @@ public:
 
 
     //MEMBER ATTRIBUTES
-
     int owner;//indicates who owns the tile
     Tiletype type;//type of tile
 
@@ -53,21 +52,17 @@ public:
     int yRelative;
 
 
-
-
     std::set<copair> possibleMoves;//a container of all possible moves a tile can make
-    \
 
 
-    bool immobile = false;//flag for whether immobilized by pillbug
-    Tile *tileBeneath = nullptr;//for beetle or mosquito
 
-    QGraphicsPolygonItem *hex;
-
+    QGraphicsPolygonItem *hex;//for image of tile
 
 
     QString debugString;
     QTextStream debugStream;
+
+
 
     //METHODS
     copair getSpace(int);//used to get coordinates of adjacent spaces
@@ -75,15 +70,17 @@ public:
     Tile* getNeighbor(int);//used to get pointer to neighboring tile
     Tile* getNeighbor(int,copair);//used to get pointer to neighboring tile if current tile has been moved to specified copair
 
+    //used to get height of a given space
     int getHeight();
-    int getHeight(Tile*);
     int getHeight(copair);
+    int getHeight(std::map<copair,std::deque<Tile*>> &tilemap);
+    int getHeight(copair, std::map<copair,std::deque<Tile*>> &tilemap);
 
-    bool isConnected(std::map<copair,Tile*>);
+    bool isConnected(std::map<copair,std::deque<Tile*>>);
 
     void moveTo(copair xy);
 
-    void moveInTileMap(copair space, std::map<copair,Tile*> &tilemap);
+    void moveInTileMap(copair space, std::map<copair,std::deque<Tile*>> &tilemap);
     //GetMoves() calls the appropriate function based on tiletype or, in the case of the mosquito, tiletypes of neighbors
     virtual void GetMoves(){};
 
@@ -99,9 +96,6 @@ public:
 
     friend QDebug operator <<(QDebug d, Tile &tile);
     friend QTextStream & operator<<(QTextStream &stream, Tile &tile);
-
-
-
 };
 
 

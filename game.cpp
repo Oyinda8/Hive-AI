@@ -18,7 +18,7 @@ Game::Game()
 void Game::getPlaceable()
 {
 
-    //add all the positions adjacent to the current player's tiles
+
     if (turnNumber==0)
     {
         placeableSpots.insert(copair(0,0));
@@ -29,11 +29,12 @@ void Game::getPlaceable()
         return;
     }
 
-
+    int debugInt = 0;
     std::set<Tile*>::iterator iter;
     int i;
 
-    //remove all positions adjacent to the other player's tiles
+
+    //add all the positions adjacent to the current player's tiles
     for(iter = tileSet.begin();iter!=tileSet.end();iter++)
     {
         if ((*iter)->owner == turn)
@@ -51,12 +52,18 @@ void Game::getPlaceable()
     bool removeSpot;
     Tile *tile;
 
+    //remove all positions adjacent to the other player's tiles
     while(iter2!=placeableSpots.end())
     {
+        debugInt++;
         removeSpot = false;
         for(i=0;i<6;i++)
         {
+
             tile = tile->getNeighbor(i,*iter2);
+            //qDebug()<<*tile;
+
+
             if (tile&&tile->owner != turn)
             {
                 removeSpot = true;
@@ -80,14 +87,11 @@ void Game::deselect()
 {
     //delete tile if not placed
     if(selectedTile && tileSet.find(selectedTile)==tileSet.end())
-    {
-
-        clearOutlines();
-        tileOutlineSet.clear();
         delete selectedTile;
 
-
-    }
+    //remove outlines
+    clearOutlines();
+    tileOutlineSet.clear();
 
     selectedTile = nullptr;
     qDebug() << tileMap;
@@ -111,17 +115,13 @@ void Game::start()
     getPlaceable();
 
 
-    /*
-    Tile *testTile = new Queen(turn,copair(0,0));
-    Scene->addItem(testTile);
-    tileSet.insert(testTile);
-*/
+
 }
 
 void Game::endTurn()
 {
 
-    qDebug()<<"\n";
+    //qDebug()<<"\n\n"<<tileMap;
 
     clearOutlines();
     deselect();
@@ -136,32 +136,35 @@ void Game::endTurn()
     getPlaceable();
 
 
-
+    Tile *tile;
 
     //get tile moves for next turn
     std::set<Tile*>::iterator iter=tileSet.begin();
     while(iter!=tileSet.end())
     {
-        (*iter)->possibleMoves.clear();
-        (*iter)->debugString.clear();
+        tile = *iter;
+
+        tile->possibleMoves.clear();
+        tile->debugString.clear();
+
         iter++;
     }
 
     //if((turnNumber==4 && nQueen0) ||(turnNumber==5 && nQueen1) )
-       // return;
+    // return;
 
     iter = tileSet.begin();
 
 
     while(iter!=tileSet.end())
     {
-
-        if((*iter)->owner==turn)
-            (*iter)->GetMoves();
+        tile = *iter;
+        //no moves if under another tile or last tile moves
+        if((tileMap[copair(tile->x,tile->y)]).front()==tile && tile->owner==turn && tile != lastTile)
+            tile->GetMoves();
         iter++;
     }
 
-    //qDebug()<<"Tiles placed: " << tileSet.size()<< "\ntilemap size: " <<tileMap.size();
 
 
 }
@@ -182,10 +185,8 @@ void Game::showPossibleMoves()
         Scene->addItem(tileOutline);
         tileOutlineSet.insert(tileOutline);
         iter++;
-
-
     }
-    //qDebug() << "number of moves: " <<selectedTile->possibleMoves.size();
+
 
 
 }
@@ -195,7 +196,14 @@ void Game::handleClick(int x, int y)
     //if move in the set of selected tile, make move
     if(selectedTile && selectedTile->possibleMoves.find(copair(x,y))!=selectedTile->possibleMoves.end())
     {
-        makeMove(selectedTile,copair(x,y));
+        try
+        {
+            makeMove(selectedTile,copair(x,y));
+        }catch(int &excep){
+            qDebug()<< "exception " <<excep<< " in handleClick";
+            throw(excep);
+
+        }
     }else{
         selectTile(copair(x,y));
     }
@@ -212,7 +220,7 @@ void Game::selectTile(copair xy)
     //check if clicked spot is a placed tile
     if (tileMap.find(xy)!=tileMap.end())
     {
-        selectedTile = tileMap[xy];
+        selectedTile = (tileMap[xy]).front();
         qDebug() << selectedTile->debugString;
         showPossibleMoves();
     }
@@ -221,11 +229,12 @@ void Game::selectTile(copair xy)
     if((turn==0 && x == iconsLeft) || (turn==1 && x == iconsRight))
     {
 
+
         switch((iconsTop-y)/2)
         {
         case 0:
 
-            if ((nQueen0 && !turn) || (nQueen1 && turn))
+            if ((!queen0 && !turn) || (!queen1 && turn))
                 selectedTile = new Queen(turn,copair(x,y));
             break;
         case 1:
@@ -269,8 +278,8 @@ void Game::selectTile(copair xy)
     if(selectedTile)
     {
 
-       // qDebug()<< "Selected tile:\nowner: " <<selectedTile->owner
-         //       <<"\ntype: "<< static_cast<int>(selectedTile->type);
+        // qDebug()<< "Selected tile:\nowner: " <<selectedTile->owner
+        //       <<"\ntype: "<< static_cast<int>(selectedTile->type);
         showPossibleMoves();
     }
 
@@ -283,21 +292,19 @@ void Game::makeMove(Tile *tile, copair xy)
     if (tile->possibleMoves.find(xy) == tile->possibleMoves.end())
         throw 2;
 
-    //if tile is already placed, remove its old entry from tileMap
-    //otherwise add it to the tileSet
-    if (tileSet.find(tile)==tileSet.end())
-    {
-        tileSet.insert(tile);
 
-    }else{
-        tileMap.erase(copair(tile->x,tile->y));
-    }
+    //add tile to set
+    tileSet.insert(tile);
+
 
     //update tileMap
     tile->moveInTileMap(xy,tileMap);
 
+    //move tile image
     tile->moveTo(xy);
 
+    //label as last tile
+    lastTile = tile;
 
     endTurn();
 
@@ -365,30 +372,43 @@ void Game::drawScene()
 }
 
 
-QDebug operator <<(QDebug d, std::map<copair,Tile*> &tilemap)
+QDebug operator <<(QDebug d, std::map<copair,std::deque<Tile*>> &tilemap)
 {
 
     Tile *tile;
     copair xy;
 
     d<<"Tilemap:\n";
-    std::map<copair,Tile*>::iterator iter = tilemap.begin();
-    if (iter == tilemap.end())
+    std::map<copair,std::deque<Tile*>>::iterator  mapIter = tilemap.begin();
+    std::deque<Tile*>::iterator dequeIter;
+
+    if (mapIter == tilemap.end())
     {
         d.nospace()<< "no tiles placed.";
         return d;
     }
 
-//loop through the tile map and output each copair and tile type/owner
-    while(iter!=tilemap.end())
+    //loop through the tile map and output each copair and tile type/owner
+    while(mapIter!=tilemap.end())
     {
 
-        xy = iter->first;
-        tile = iter->second;
-        d.nospace()<<"{"<<xy<< " "<<*tile<<"}  ";
-        iter++;
+        xy = mapIter->first;
+        d.nospace()<<"{"<<xy;
+        dequeIter = (mapIter->second).begin();
+        while(dequeIter != (mapIter->second).end())
+        {
+
+            tile = *dequeIter;
+            d.nospace()<<" "<<*tile;
+            dequeIter++;
+        }
+
+        d.nospace()<<"}";
+        mapIter++;
 
     }
+
+
     return d;
 
 }
@@ -402,28 +422,40 @@ QDebug operator <<(QDebug d, copair xy)
 
 
 
-QTextStream & operator <<(QTextStream & stream, std::map<copair,Tile*> &tilemap)
+QTextStream & operator <<(QTextStream & stream, std::map<copair,std::deque<Tile*>> &tilemap)
 {
 
     Tile *tile;
     copair xy;
 
     stream<<"Tilemap:\n";
-    std::map<copair,Tile*>::iterator iter = tilemap.begin();
-    if (iter == tilemap.end())
+    std::map<copair,std::deque<Tile*>>::iterator  mapIter = tilemap.begin();
+    std::deque<Tile*>::iterator dequeIter;
+
+    if (mapIter == tilemap.end())
     {
         stream<< "no tiles placed.";
         return stream;
     }
 
-//loop through the tile map and output each copair and tile type/owner
-    while(iter!=tilemap.end())
+    //loop through the tile map and output each copair and tile type/owner
+    while(mapIter!=tilemap.end())
     {
 
-        xy = iter->first;
-        tile = iter->second;
-        stream<< "{" << xy << " " << *tile <<"}  ";
-        iter++;
+
+        xy = mapIter->first;
+
+
+        stream<<"{"<<xy;
+        dequeIter = (mapIter->second).begin();
+        while(dequeIter != (mapIter->second).end())
+        {
+            tile = *dequeIter;
+            stream<<" "<<*tile;
+            dequeIter++;
+        }
+
+        mapIter++;
 
     }
     return stream;

@@ -166,35 +166,38 @@ copair Tile::getSpace(int m,copair possibleSpace)
 
 }
 
-int Tile::getHeight(Tile*)
-{
-    if(tileBeneath)
-    {
-        return tileBeneath->getHeight()+1;
-    }
-    return 1;
-}
-
 int Tile::getHeight()
 {
-    return getHeight(this);
+    return getHeight(copair(x,y),game->tileMap);
 }
 
-int Tile::getHeight(copair space)
+int Tile::getHeight(copair xy)
 {
-    if(game->tileMap.find(space)!=game->tileMap.end())
-        return getHeight(game->tileMap[space]);
+    return getHeight(xy,game->tileMap);
+}
+
+int Tile::getHeight(std::map<copair,std::deque<Tile*>> &tilemap)
+{
+    return getHeight(copair(x,y),tilemap);
+}
+
+int Tile::getHeight(copair space, std::map<copair,std::deque<Tile*>> &tilemap)
+{
+    if(tilemap.find(space)!=tilemap.end())
+        return tilemap[space].size();
     else
         return 0;
 
 }
+
+
 
 Tile* Tile::getNeighbor(int m)
 {
     copair space = getSpace(m);
     if (game->tileMap.find(space)!=game->tileMap.end())
     {
-        return game->tileMap[space];
+        return game->tileMap[space].front();
     }
     return nullptr;
 }
@@ -204,18 +207,16 @@ Tile* Tile::getNeighbor(int m, copair possibleSpace)
     copair space = getSpace(m,possibleSpace);
     if (game->tileMap.find(space)!=game->tileMap.end())
     {
-        return game->tileMap[space];
+        return game->tileMap[space].front();
     }
     return nullptr;
 
 
 }
 
-bool Tile::isConnected(std::map<copair, Tile *> possibleTileMap)
+bool Tile::isConnected(std::map<copair,std::deque<Tile*>> possibleTileMap)
 {
 
-int debugOwner = owner;
-Tiletype debugTileType = type;
 
     //deque is used for bredth-first search
     //set is required to check what has already been queued to be searched
@@ -223,7 +224,7 @@ Tiletype debugTileType = type;
     std::set<copair> reachableSet;
 
     //seed the search
-    std::map<copair,Tile*>::iterator mapIter = possibleTileMap.begin();
+    std::map<copair,std::deque<Tile*>>::iterator mapIter = possibleTileMap.begin();
     reachableDeque.push_back(mapIter->first);
     reachableSet.insert(mapIter->first);
 
@@ -257,7 +258,7 @@ void Tile::GetQueenMoves()
 {
 
     copair possibleSpace;//coordinates of space queen might occupy
-    std::map<copair,Tile*> possibleTileMap;//tile map for computing whether possible moves are legal
+    std::map<copair,std::deque<Tile*>> possibleTileMap;//tile map for computing whether possible moves are legal
 
     //check if each move is valid
     for(int i=0;i<6;i++)
@@ -310,9 +311,8 @@ void Tile::GetQueenMoves()
 void Tile::GetSpiderMoves()
 {
 
-
     copair possibleFirstSpace,possibleSecondSpace,possibleSpace;//coordinates of space queen might occupy
-    std::map<copair,Tile*> possibleTileMap;//tile map for computing whether possible moves are legal
+    std::map<copair,std::deque<Tile*>> possibleTileMap;//tile map for computing whether possible moves are legal
 
 
 
@@ -321,6 +321,7 @@ void Tile::GetSpiderMoves()
     //check if each move is valid
     for(i=0;i<6;i++)
     {
+        possibleTileMap=game->tileMap;
         //verify space is empty
         if(getNeighbor(i)!=nullptr)
         {
@@ -329,7 +330,7 @@ void Tile::GetSpiderMoves()
         }
 
         //verify freedom to move
-        if ((getNeighbor(i+1)!=nullptr) && (getNeighbor(i-1)!=nullptr))
+        if (getHeight(getSpace(i-1),possibleTileMap) && getHeight(getSpace(i+1),possibleTileMap))
         {
             debugStream << i << ": freedom to move violation\n";
             continue; //end verification of current move
@@ -345,7 +346,7 @@ void Tile::GetSpiderMoves()
         }
 
         //verify hive not broken
-        possibleTileMap=game->tileMap;
+
         possibleFirstSpace = getSpace(i);
         moveInTileMap(possibleFirstSpace,possibleTileMap);
 
@@ -374,7 +375,7 @@ void Tile::GetSpiderMoves()
             }
 
             //verify freedom to move
-            if(getNeighbor(j+1,possibleFirstSpace)!=nullptr && getNeighbor(j-1,possibleFirstSpace)!=nullptr)
+            if(getHeight(getSpace(j-1,possibleFirstSpace),possibleTileMap) && getHeight(getSpace(j+1,possibleFirstSpace),possibleTileMap))
             {
                 debugStream << i << j <<": freedom to move violation\n";
                 continue; //end verification of current move
@@ -422,7 +423,7 @@ void Tile::GetSpiderMoves()
                 }
 
                 //verify freedom of movement
-                if((getNeighbor(k+1,possibleSecondSpace)!=nullptr) && (getNeighbor(k-1,possibleSecondSpace)!=nullptr))
+                if(getHeight(getSpace(k-1,possibleSecondSpace),possibleTileMap) && getHeight(getSpace(k+1,possibleSecondSpace),possibleTileMap))
                 {
                     debugStream << i << j << k << ": freedom of movement violated\n";
                     continue; //end verification of current move
@@ -453,7 +454,7 @@ void Tile::GetSpiderMoves()
 
 void Tile::GetGrasshopperMoves()
 {
-    std::map<copair,Tile*> possibleTileMap;//tile map for computing whether possible moves are legal
+    std::map<copair,std::deque<Tile*>> possibleTileMap;//tile map for computing whether possible moves are legal
     copair space;
     int i;
 
@@ -486,7 +487,7 @@ void Tile::GetGrasshopperMoves()
 
 void Tile::GetAntMoves()
 {
-    std::map<copair,Tile*> possibleTileMap;//tile map for computing whether possible moves are legal
+    std::map<copair,std::deque<Tile*>> possibleTileMap;//tile map for computing whether possible moves are legal
     std::deque<copair> moveDeck;//growing set of possible ant-moves
     moveDeck.push_back(copair(x,y));//seed set of ant-moves with current location
 
@@ -503,8 +504,7 @@ void Tile::GetAntMoves()
             {
                 possibleSpace = getSpace(i,space);
                 possibleTileMap=game->tileMap;
-                possibleTileMap[possibleSpace] = this;
-                possibleTileMap.erase(copair(x,y));
+                moveInTileMap(possibleSpace,possibleTileMap);
                 if(isConnected(possibleTileMap))
                 {
                     if(possibleMoves.find(possibleSpace)==possibleMoves.end())
@@ -528,23 +528,23 @@ void Tile::GetAntMoves()
 void Tile::GetBeetleMoves()
 {
     copair possibleSpace;//coordinates of space Beetle might occupy
-    std::map<copair,Tile*> possibleTileMap;//tile map for computing whether possible moves are legal
+    std::map<copair,std::deque<Tile*>> possibleTileMap;//tile map for computing whether possible moves are legal
     int effectiveHeight,flankHeight;
 
-    Tile *tileBeneathCopy = tileBeneath; //to restore tileBeneath after use in moveInTileMap
+
 
     for(int i=0;i<6;i++)
     {
         possibleTileMap = game->tileMap;
         possibleSpace = getSpace(i);
         moveInTileMap(possibleSpace,possibleTileMap);
-        tileBeneath = tileBeneathCopy;
 
 
 
-       //verify freedom to move
-        effectiveHeight = std::max(getHeight(),getHeight(possibleSpace));
-        flankHeight = std::min(getHeight(getSpace(i+1)),getHeight(getSpace(i-1)));
+
+        //verify freedom to move
+        effectiveHeight = std::max(getHeight(),getHeight(possibleSpace,possibleTileMap));
+        flankHeight = std::min(getHeight(getSpace(i+1),possibleTileMap),getHeight(getSpace(i-1),possibleTileMap));
         if (flankHeight>=effectiveHeight)
         {
             debugStream << i << ": freedom to move violation\n";
@@ -563,7 +563,7 @@ void Tile::GetBeetleMoves()
         possibleMoves.insert(possibleSpace);
         debugStream << i << ": valid\n" <<possibleTileMap<<"\n";
     }
-    tileBeneath = tileBeneathCopy;
+
 }
 
 
@@ -572,7 +572,7 @@ void Tile::GetBeetleMoves()
 void Tile::GetLadybugMoves()
 {
     copair firstMove,secondMove,possibleSpace;//coordinates of space queen might occupy
-    std::map<copair,Tile*> possibleTileMap;//tile map for computing whether possible moves are legal
+    std::map<copair,std::deque<Tile*>> possibleTileMap;//tile map for computing whether possible moves are legal
 
     int i,j,k;//indices for first, secind, and third step of spider move
 
@@ -670,30 +670,66 @@ void Tile::GetLadybugMoves()
 void Tile::GetPillbugMoves()
 {
 
-    std::map<copair,Tile*> possibleTileMap;//tile map for computing whether possible moves are legal
-    int i,j;
+    std::map<copair,std::deque<Tile*>> possibleTileMap;//tile map for computing whether possible moves are legal
+    int i;
     Tile* neighbor;
     GetQueenMoves();//get all standard moves
 
+    std::set<Tile*> moveableNeighbors;//set of all neighbors that can be moved by pillbug move;
+    std::set<copair> moveableSpaces; //set of all possible destinations for pillbug move;
+    std::set<Tile*>::iterator tileIter;
+    std::set<copair>::iterator spaceIter;
+
+    //get moveable neighbors
     for(i=0;i<6;i++)
     {
         neighbor = getNeighbor(i);
+
+        //verify freedom to move
+        if(std::min(getHeight(getSpace(i-1)),getHeight(getSpace(i+1)))>1)
+        {
+            debugStream<< i << ": freedom to move violation\n";
+            continue;
+        }
+
+        //check if neighbor or empty space
         if(neighbor)
         {
-            for(j=0;j<6;j++)
-            {
-                if(i!=j && !getNeighbor(j))
-                {
-                    possibleTileMap=game->tileMap;
-                    possibleTileMap[getSpace(j)]=neighbor;
-                    possibleTileMap.erase(getSpace(i));
-                    if (isConnected(possibleTileMap))
-                        neighbor->possibleMoves.insert(getSpace(j));
 
-                }
+            //verify neighbor wasn't just moved
+            if(neighbor == game->lastTile)
+            {
+                debugStream << i << ": neighbor is immobile\n";
+                continue;
             }
+
+            //verify hive not broken
+            possibleTileMap = game->tileMap;
+            neighbor->moveInTileMap(copair(x,y),possibleTileMap);
+            if(!isConnected(possibleTileMap))
+            {
+                debugStream << i << ": hive broken\n";
+                continue;
+            }
+            debugStream << i << ": valid neighbor\n";
+            moveableNeighbors.insert(neighbor);
+        }else{
+            debugStream << i << ": valid space\n";
+            moveableSpaces.insert(getSpace(i));
+        }
+
+
+    }
+
+    //add moves to neighbors move lists
+    for(tileIter = moveableNeighbors.begin();tileIter!= moveableNeighbors.end();tileIter++)
+    {
+        for(spaceIter = moveableSpaces.begin();spaceIter != moveableSpaces.end();spaceIter++)
+        {
+            (*tileIter)->possibleMoves.insert(*spaceIter);
         }
     }
+
 
 
 
@@ -751,18 +787,25 @@ void Mosquito::GetMoves()
             {
             case queen:
                 GetQueenMoves();
+                break;
             case spider:
                 GetSpiderMoves();
+                break;
             case grasshopper:
                 GetGrasshopperMoves();
+                break;
             case ant:
                 GetAntMoves();
+                break;
             case beetle:
                 GetBeetleMoves();
+                break;
             case ladybug:
                 GetLadybugMoves();
+                break;
             case pillbug:
                 GetPillbugMoves();
+                break;
             case mosquito:;
 
             }
@@ -797,46 +840,74 @@ void Tile::moveTo(copair xy)
 
 }
 
-void Tile::moveInTileMap(copair space, std::map<copair,Tile*> &tilemap)
+void Tile::moveInTileMap(copair space, std::map<copair,std::deque<Tile*>> &tilemap)
 {
-    //if moving to same space, do nothing
-    if(tilemap.find(space) != tilemap.end() && tilemap[space] == this)
+
+
+
+    // if moving to same space, do nothing
+    if(tilemap.find(space) != tilemap.end()  && tilemap[space].front() == this)
         return;
 
-    std::map<copair,Tile*>::iterator iter = tilemap.begin(), iter2 =tilemap.end() ;
+
+    std::map<copair,std::deque<Tile*>>::iterator mapIter = tilemap.begin();
+    std::deque<Tile*>::iterator deckIter;
 
 
 
-    while(iter != tilemap.end())
+    while(mapIter != tilemap.end())
     {
 
-        //if tile is already in tile map, remove it from it's current space
-        //revealing the tile beneath it
-        if(iter->second == this)
+
+        //check if tile is already in tilemap
+        if(((mapIter)->second).front()==this)
         {
 
-            if(tileBeneath != nullptr)
+            ((mapIter)->second).pop_front();//remove tile from current place
+
+
+
+            if(((mapIter)->second).size()==0)
+                tilemap.erase(mapIter);//if nothing left in tile stack, delete entry from tile map
+            break;
+        }
+
+        //if tile is already in tilemap but in the middle of tile stack, throw exception
+        deckIter = (mapIter->second).begin();
+
+        while(deckIter!=(mapIter->second).end())
+        {
+
+            if(*deckIter==this)
             {
-                iter->second = tileBeneath;
-            }else{
-                iter2 = iter;
+
+                qDebug()<< ((mapIter->second).front()==this);
+                qDebug()<<*(mapIter->second).front();
+                qDebug()<<*this;
+                qDebug()<<tilemap;
+                throw 3;
             }
 
-        }
+            deckIter++;
 
-        //if space is already occupied, place the tile there beneath the current tile
-        if(iter->first == space)
-        {
-            tileBeneath = iter->second;
         }
-        iter++;
+        mapIter++;
     }
 
-    if(iter2 != tilemap.end())
-        tilemap.erase(iter2);
 
-    //place tile in current space
-    tilemap[space] = this;
+
+
+
+    if(tilemap.find(space)!=tilemap.end())
+    {
+        (tilemap[space]).push_front(this);
+    }else{
+        std::deque<Tile*> tileDeck;
+        tileDeck.push_front(this);
+
+        tilemap[space] = tileDeck;
+    }
+
 
 
 }

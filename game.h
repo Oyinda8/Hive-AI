@@ -20,6 +20,9 @@ struct game_state;
 //class TileOutline;
 
 
+
+
+
 class Game : public QGraphicsView
 {
 public:
@@ -32,12 +35,12 @@ public:
     float prevValue = .5;
 
     std::set<Tile*> tileSet;//reference to every placed tile
-    std::map<copair,Tile*> tileMap;// map coordinates to tiles
+    std::map<copair,std::deque<Tile*>> tileMap;// map coordinates to tiles
 
     std::set<copair> placeableSpots;//set of all places a new tile can be placed
     std::set<TileOutline*> tileOutlineSet;//container for tileOutlines
 
-
+    Tile* lastTile = nullptr;//last tile moved
 
     //METHODS
     void UpdateGameState();
@@ -62,6 +65,7 @@ private:
 
     Tile* selectedTile=nullptr;
 
+
     //new tile icons
     Tile *queenIcon0, *queenIcon1, *spiderIcon0, *spiderIcon1,
     *grasshopperIcon0, *grasshopperIcon1, *antIcon0, *antIcon1,
@@ -69,9 +73,10 @@ private:
     *ladybugIcon0, *ladybugIcon1, *pillbugIcon0, *pillbugIcon1;
 
     //number of each tile left
-    int nQueen0=1, nSpider0=2, nGrasshopper0=3, nAnt0=3, nBeetle0=2, nMosquito0=1, nLadybug0=1, nPillbug0=1,
-    nQueen1=1, nSpider1=2, nGrasshopper1=3, nAnt1=3, nBeetle1=2, nMosquito1=1, nLadybug1=1, nPillbug1=1;
+    int nSpider0=2, nGrasshopper0=3, nAnt0=3, nBeetle0=2, nMosquito0=1, nLadybug0=1, nPillbug0=1,
+     nSpider1=2, nGrasshopper1=3, nAnt1=3, nBeetle1=2, nMosquito1=1, nLadybug1=1, nPillbug1=1;
 
+    Tile *queen0=nullptr, *queen1=nullptr; //references to queens
     //methods
     void start();
     void getPlaceable();//get list of places a new tile can be placed
@@ -81,14 +86,14 @@ private:
     void showPossibleMoves();
 
     //operator overloads
-    friend QDebug operator<< (QDebug d, std::map<copair,Tile*> &tilemap);
+    friend QDebug operator<< (QDebug d, std::map<copair,std::deque<Tile*>> &tilemap);
 
 };
 
-QDebug operator <<(QDebug d, std::map<copair,Tile*> &tilemap);
+QDebug operator <<(QDebug d, std::map<copair,std::deque<Tile*>>  &tilemap);
 QDebug operator <<(QDebug d, copair xy);
 
-QTextStream& operator <<(QTextStream& stream, std::map<copair,Tile*> &tilemap);
+QTextStream& operator <<(QTextStream& stream, std::map<copair,std::deque<Tile*>> &tilemap);
 QTextStream& operator <<(QTextStream& stream, copair &xy);
 
 
