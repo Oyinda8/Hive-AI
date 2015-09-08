@@ -26,13 +26,15 @@ struct game_state;
 class Game : public QGraphicsView
 {
 public:
-    Game();
+    Game(QWidget* parent=0);
 
     //MEMBER ATTRIBUTES
     game_state *currentGameState;
     game_state *prevGameState;
     float currentValue = .5;
     float prevValue = .5;
+
+    bool noMoves = true;
 
     std::set<Tile*> tileSet;//reference to every placed tile
     std::map<copair,std::deque<Tile*>> tileMap;// map coordinates to tiles
@@ -84,6 +86,7 @@ private:
     void drawScene();
     void deselect();
     void showPossibleMoves();
+    void endGame(bool, bool);
 
     //operator overloads
     friend QDebug operator<< (QDebug d, std::map<copair,std::deque<Tile*>> &tilemap);

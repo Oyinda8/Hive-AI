@@ -5,7 +5,7 @@
 #include <iostream>
 
 
-Game::Game()
+Game::Game(QWidget *parent):QGraphicsView(parent)
 {
     drawScene();
     start();
@@ -121,6 +121,22 @@ void Game::start()
 void Game::endTurn()
 {
 
+    bool queen1Surrounded=true, queen0Surrounded=true;
+    int i;
+
+    for(i=0;i<6;i++)
+    {
+        if(!queen1 || !queen1->getNeighbor(i))
+            queen1Surrounded == false;
+
+        if(!queen0 || !queen0->getNeighbor(i))
+            queen0Surrounded == false;
+    }
+
+    endGame(queen0Surrounded,queen1Surrounded);
+
+
+
     //qDebug()<<"\n\n"<<tileMap;
 
     clearOutlines();
@@ -128,7 +144,7 @@ void Game::endTurn()
     turn = 1-turn;//toggle turn
 
     //only first 6 turns matter for queen placement
-    if (turnNumber<6)
+    if (turnNumber<7)
         turnNumber++;
 
     //get placeable spots for next turn
@@ -150,23 +166,39 @@ void Game::endTurn()
         iter++;
     }
 
-    //if((turnNumber==4 && nQueen0) ||(turnNumber==5 && nQueen1) )
-    // return;
-
-    iter = tileSet.begin();
-
-
-    while(iter!=tileSet.end())
+    //get moves only if queen has been placed
+    if((turn && queen1) ||(!turn && queen0))
     {
-        tile = *iter;
-        //no moves if under another tile or last tile moves
-        if((tileMap[copair(tile->x,tile->y)]).front()==tile && tile->owner==turn && tile != lastTile)
-            tile->GetMoves();
-        iter++;
+
+        iter = tileSet.begin();
+
+
+        while(iter!=tileSet.end())
+        {
+            tile = *iter;
+            //no moves if under another tile or last tile moves
+            if((tileMap[copair(tile->x,tile->y)]).front()==tile && tile->owner==turn && tile != lastTile)
+                tile->GetMoves();
+            iter++;
+        }
     }
 
+    //check whether current player has no legal moves
+    int nTilesUsed = 0, nTilesTotal = 14;
+    iter = tileSet.begin();
+    while( iter != tileSet.end())
+    {
+        tile = *iter;
+        if (tile->owner == turn)
+            nTilesUsed++;
 
+        if((tile->possibleMoves).size())
+            return;
 
+        iter++;
+    }
+    if(nTilesUsed == nTilesTotal || placeableSpots.size()==0)
+        endTurn();
 }
 
 
@@ -270,6 +302,13 @@ void Game::selectTile(copair xy)
         }
         if(selectedTile)
         {
+            //if player has 3 other placed tiles and no queen, only let queen be selected
+            if(turnNumber == 6 && !queen0 && selectedTile->type != queen)
+                return;
+
+            if(turnNumber == 7 && !queen1 && selectedTile->type != queen)
+                return;
+
             Scene->addItem(selectedTile);
             selectedTile->possibleMoves = placeableSpots;
         }
@@ -293,20 +332,91 @@ void Game::makeMove(Tile *tile, copair xy)
         throw 2;
 
 
+    int tileIsNew = tileSet.size();
+
     //add tile to set
     tileSet.insert(tile);
+
+    //check if tile was placed for the first time
+    tileIsNew = tileSet.size()-tileIsNew;
+
+    //if tile is new, decrement number of tiles left
+    if(tileIsNew)
+    {
+        switch (tile->type)
+        {
+        case queen:
+            if(tile->owner)
+                queen1 = tile;
+            else
+                queen0 = tile;
+            break;
+        case spider:
+            if(tile->owner)
+                nSpider1--;
+            else
+                nSpider0--;
+            break;
+        case grasshopper:
+            if(tile->owner)
+                nGrasshopper1--;
+            else
+                nGrasshopper0--;
+            break;
+        case ant:
+            if(tile->owner)
+                nAnt1--;
+            else
+                nAnt0--;
+            break;
+        case beetle:
+            if(tile->owner)
+                nBeetle1--;
+            else
+                nBeetle0--;
+            break;
+        case mosquito:
+            if(tile->owner)
+                nMosquito1--;
+            else
+                nMosquito0--;
+            break;
+        case ladybug:
+            if(tile->owner)
+                nLadybug1--;
+            else
+                nLadybug0--;
+            break;
+        case pillbug:
+            if(tile->owner)
+                nPillbug1--;
+            else
+                nPillbug0--;
+            break;
+        }
+
+
+    }
+
 
 
     //update tileMap
     tile->moveInTileMap(xy,tileMap);
 
+
     //move tile image
     tile->moveTo(xy);
+    tile->setZValue(tile->getHeight()-1);
 
     //label as last tile
     lastTile = tile;
 
     endTurn();
+
+}
+
+void Game::endGame(bool q0s,bool q1s)
+{
 
 }
 
