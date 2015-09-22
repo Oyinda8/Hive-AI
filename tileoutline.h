@@ -6,6 +6,7 @@
 #include <QGraphicsPolygonItem>
 #include <QGraphicsItem>
 #include <QPolygonF>
+#include <QPainter>
 #include "tile.h"
 
 
@@ -15,6 +16,8 @@ class TileOutline:public QGraphicsPolygonItem
 public:
     TileOutline(QGraphicsItem *parent=0);
     TileOutline(copair,QGraphicsItem *parent=0);
+    TileOutline(Qt::GlobalColor color, QGraphicsItem *parent);
+    TileOutline(Qt::GlobalColor color, copair,QGraphicsItem *parent=0);
 
 };
 

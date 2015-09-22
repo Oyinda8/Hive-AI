@@ -103,7 +103,8 @@ Tile::Tile(int Owner,Tiletype Type, copair xy,QGraphicsItem *parent):QGraphicsPo
 
     setPos(xs,ys);
 
-
+    x = xb;
+    y = yb;
 
 
 
@@ -210,9 +211,19 @@ Tile* Tile::getNeighbor(int m, copair possibleSpace)
         return game->tileMap[space].front();
     }
     return nullptr;
-
-
 }
+
+Tile* Tile::getNeighbor(int m, copair possibleSpace, std::map<copair,std::deque<Tile*>> &tilemap)
+{
+    copair space = getSpace(m,possibleSpace);
+    if (tilemap.find(space)!=tilemap.end())
+    {
+        return tilemap[space].front();
+    }
+    return nullptr;
+}
+
+
 
 bool Tile::isConnected(std::map<copair,std::deque<Tile*>> possibleTileMap)
 {
@@ -314,6 +325,7 @@ void Tile::GetSpiderMoves()
     copair possibleFirstSpace,possibleSecondSpace,possibleSpace;//coordinates of space queen might occupy
     std::map<copair,std::deque<Tile*>> possibleTileMap;//tile map for computing whether possible moves are legal
 
+    int nMoves = 0;
 
 
     int i,j,k;//indices for first, secind, and third step of spider move
@@ -382,7 +394,7 @@ void Tile::GetSpiderMoves()
             }
 
             //verify hive not broken in transit
-            if(getNeighbor(j+1,possibleFirstSpace)==nullptr && getNeighbor(j-1,possibleFirstSpace)==nullptr)
+            if(getNeighbor(j+1,possibleFirstSpace,possibleTileMap)==nullptr && getNeighbor(j-1,possibleFirstSpace,possibleTileMap)==nullptr)
             {
                 debugStream << i << j <<": hive broken in transit\n";
                 continue; //end verification of current move
@@ -430,7 +442,7 @@ void Tile::GetSpiderMoves()
                 }
 
                 //verify hive not broken in transit
-                if((getNeighbor(k+1,possibleSecondSpace)==nullptr) && (getNeighbor(k-1,possibleSecondSpace)==nullptr))
+                if((getNeighbor(k+1,possibleSecondSpace,possibleTileMap)==nullptr) && (getNeighbor(k-1,possibleSecondSpace,possibleTileMap)==nullptr))
                 {
                     debugStream << i << j << k << ": hive broken in transit\n";
                     continue; //end verification of current move
@@ -446,10 +458,13 @@ void Tile::GetSpiderMoves()
 
                 debugStream << i << j << k << ": valid\n";
                 possibleMoves.insert(possibleSpace);
+                nMoves++;
 
             }
         }
     }
+
+    debugStream <<"number of spider moves: "<<nMoves;
 }
 
 void Tile::GetGrasshopperMoves()
@@ -487,9 +502,13 @@ void Tile::GetGrasshopperMoves()
 
 void Tile::GetAntMoves()
 {
+
+
+
     std::map<copair,std::deque<Tile*>> possibleTileMap;//tile map for computing whether possible moves are legal
     std::deque<copair> moveDeck;//growing set of possible ant-moves
     moveDeck.push_back(copair(x,y));//seed set of ant-moves with current location
+    std::set<copair> antMoves;//set of ant moves needs to be distinct from total set of moves for mosquito
 
     copair space, possibleSpace;
     std::deque<copair>::iterator iter = moveDeck.begin();
@@ -497,9 +516,11 @@ void Tile::GetAntMoves()
     int i;
     while(iter!=moveDeck.end())
     {
+
         space = *iter;
         for(i=0;i<6;i++)
         {
+
             if(!(getNeighbor(i,space)) && ((getNeighbor(i+1,space)==nullptr) ^ (getNeighbor(i-1,space)==nullptr)))
             {
                 possibleSpace = getSpace(i,space);
@@ -507,8 +528,9 @@ void Tile::GetAntMoves()
                 moveInTileMap(possibleSpace,possibleTileMap);
                 if(isConnected(possibleTileMap))
                 {
-                    if(possibleMoves.find(possibleSpace)==possibleMoves.end())
+                    if(antMoves.find(possibleSpace)==antMoves.end())
                     {
+                        antMoves.insert(possibleSpace);
                         possibleMoves.insert(possibleSpace);
                         moveDeck.push_back(possibleSpace);
                     }
@@ -518,6 +540,7 @@ void Tile::GetAntMoves()
         }
         iter++;
     }
+
 
 
 
@@ -787,6 +810,7 @@ void Mosquito::GetMoves()
             {
             case queen:
                 GetQueenMoves();
+
                 break;
             case spider:
                 GetSpiderMoves();
@@ -842,9 +866,6 @@ void Tile::moveTo(copair xy)
 
 void Tile::moveInTileMap(copair space, std::map<copair,std::deque<Tile*>> &tilemap)
 {
-
-
-
     // if moving to same space, do nothing
     if(tilemap.find(space) != tilemap.end()  && tilemap[space].front() == this)
         return;
@@ -857,7 +878,6 @@ void Tile::moveInTileMap(copair space, std::map<copair,std::deque<Tile*>> &tilem
 
     while(mapIter != tilemap.end())
     {
-
 
         //check if tile is already in tilemap
         if(((mapIter)->second).front()==this)

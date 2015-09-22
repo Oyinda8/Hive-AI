@@ -42,6 +42,7 @@ public:
     //MEMBER ATTRIBUTES
     int owner;//indicates who owns the tile
     Tiletype type;//type of tile
+    bool placed = false;//indicates whether the tile has been placed
 
     // x and ycoordinate relative to the board
     int x;
@@ -69,8 +70,9 @@ public:
     copair getSpace(int,copair);//used to get coordinates of spaces adjacent to specified copair
     Tile* getNeighbor(int);//used to get pointer to neighboring tile
     Tile* getNeighbor(int,copair);//used to get pointer to neighboring tile if current tile has been moved to specified copair
+    Tile* getNeighbor(int,copair,std::map<copair,std::deque<Tile*>> &tilemap);//used to get pointer to neighboring tile in specified tilemap
 
-    //used to get height of a given space
+//used to get height of a given spastd::map<copair,std::deque<Tile*>> &tilemapce
     int getHeight();
     int getHeight(copair);
     int getHeight(std::map<copair,std::deque<Tile*>> &tilemap);
@@ -82,7 +84,7 @@ public:
 
     void moveInTileMap(copair space, std::map<copair,std::deque<Tile*>> &tilemap);
     //GetMoves() calls the appropriate function based on tiletype or, in the case of the mosquito, tiletypes of neighbors
-    virtual void GetMoves(){};
+    virtual void GetMoves(){}
 
     void GetQueenMoves();
     void GetSpiderMoves();
